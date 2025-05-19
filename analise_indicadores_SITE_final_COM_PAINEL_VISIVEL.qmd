@@ -1,0 +1,120 @@
+---
+title: "Rafael Moreira de Oliveira"
+format:
+  html:
+    theme: litera
+    css: styles.css
+    toc: true
+    toc-depth: 2
+    number-sections: true
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)     # inclui ggplot2 e dplyr
+library(WDI)           # base de dados mundiais
+library(countrycode)   # códigos de países
+
+options(scipen = 999)  # Evitar notação científica
+```
+
+### Consumo de Energia Elétrica per Capita
+
+A variável **Consumo de Energia Elétrica per Capita** indica a quantidade média de eletricidade consumida por pessoa em um determinado país, em quilowatt-hora (kWh). Esse indicador é essencial para avaliar o grau de desenvolvimento econômico, acesso à energia e qualidade de vida da população. Em contextos analíticos, pode ser usado para comparar padrões de consumo entre países, identificar desigualdades energéticas e orientar políticas de sustentabilidade e infraestrutura energética.
+
+## Consumo de Energia Elétrica per Capita
+
+```{r}
+#| echo: false
+# Baixar e limpar dados
+energia_per_capita <- WDI(country = 'BR', indicator = 'EG.USE.ELEC.KH.PC') %>%
+  filter(!is.na(EG.USE.ELEC.KH.PC))
+
+# Gráfico
+ggplot(energia_per_capita, aes(x = factor(year), y = EG.USE.ELEC.KH.PC)) +
+  geom_col(fill = "darkgreen") +
+  labs(
+    title = "Consumo de Energia Elétrica per Capita no Brasil",
+    x = "Ano",
+    y = "kWh por Pessoa"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+```
+
+### PIB per Capita
+
+A variável **PIB per Capita** representa a soma de todos os bens e serviços produzidos por um país em um ano, dividida pelo número de habitantes. Esse indicador é amplamente utilizado para medir o nível de riqueza e desenvolvimento econômico de um país. Comparar o PIB per capita entre nações permite compreender desigualdades globais, identificar padrões de crescimento e definir prioridades em políticas públicas, investimentos e comércio internacional.
+
+## Top 20 Países por PIB per Capita em 2022
+
+```{r}
+#| echo: false
+pib_per_capita <- WDI(country = 'all', indicator = 'NY.GDP.PCAP.CD', start = 2022, end = 2022) %>%
+  filter(!is.na(NY.GDP.PCAP.CD)) %>%
+  arrange(desc(NY.GDP.PCAP.CD)) %>%
+  slice(1:20)
+
+# Gráfico
+ggplot(pib_per_capita, aes(x = reorder(country, NY.GDP.PCAP.CD), y = NY.GDP.PCAP.CD)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 20 Países - PIB per Capita (US$) - 2022",
+    x = "País",
+    y = "PIB per Capita (US$)"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Expectativa de Vida ao Nascer
+
+A variável **Expectativa de Vida ao Nascer** estima o número médio de anos que uma pessoa nascida em determinado país pode esperar viver, considerando os padrões de mortalidade atuais. Esse indicador é fundamental para avaliar o nível de saúde da população, a qualidade dos serviços médicos e o impacto de fatores socioeconômicos na longevidade. Em análises comparativas, ele fornece uma visão ampla sobre o bem-estar e o progresso social de um país.
+
+## Expectativa de Vida ao Nascer no Brasil
+
+```{r}
+#| echo: false
+#| fig-height: 18
+#| fig-width: 12
+
+library(WDI)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+# Dados da expectativa de vida do Brasil
+expectativa_vida_br <- WDI(country = 'BR', indicator = 'SP.DYN.LE00.IN') %>%
+  filter(!is.na(SP.DYN.LE00.IN)) %>%
+  filter(year %% 5 == 0)
+
+# Simular dados por estado com pequenas variações
+set.seed(123)
+estados <- c("Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará", "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro", "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia", "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins")
+expectativa_estados <- expand.grid(estado = estados, year = expectativa_vida_br$year)
+
+# Adicionar variação por estado simulada
+expectativa_estados <- expectativa_estados %>%
+  left_join(expectativa_vida_br, by = "year") %>%
+  mutate(SP.DYN.LE00.IN = SP.DYN.LE00.IN + rnorm(n(), mean = 0, sd = 2))
+
+# Gráfico em painel (facetas por estado)
+ggplot(expectativa_estados, aes(x = factor(year), y = SP.DYN.LE00.IN)) +
+  geom_col(fill = "darkgreen") +
+  facet_wrap(~ estado, ncol = 4) +
+  labs(
+    title = "Expectativa de Vida ao Nascer por Estado (Simulada)",
+    x = "Ano",
+    y = "Anos"
+  ) +
+  scale_y_continuous(breaks = seq(60, 90, by = 5)) +
+  theme_classic(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, size = 7),
+    axis.text.y = element_text(size = 7),
+    strip.text = element_text(size = 9)
+  )
+```
