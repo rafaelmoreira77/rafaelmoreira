@@ -1,0 +1,121 @@
+---
+title: "Gráfico massa rendimento Animado"
+format: html
+execute:
+  echo: true
+---
+
+```{r}
+#| label: carregar-pacotes
+#| include: false
+
+#| label: carregar-pacotes
+#| include: false
+
+library(GetBCBData)
+library(tidyverse)
+library(scales)
+library(showtext)
+library(magick)
+
+```
+
+```{r}
+#| label: baixar-dados
+#| warning: false
+#| echo: false
+
+my_id <- c(massa_rendimento_ma = 11426)
+
+df_bcb <- gbcbd_get_series(
+  id = my_id,
+  first.date = "2001-01-31",
+  last.date = Sys.Date(),
+  format.data = "long",
+  use.memoise = TRUE,
+  cache.path = tempdir(),
+  do.parallel = FALSE
+)
+
+```
+
+```{r}
+#| label: preparar-fonte
+#| echo: false
+
+font_add_google("Roboto", "roboto")
+showtext_auto()
+
+```
+
+**Rafael Moreira de Oliveira**
+
+------------------------------------------------------------------------
+
+### massa_rendimento - Núcleo Médias Aparadas sem Suavização
+
+O **massa_rendimento - Núcleo Médias Aparadas sem Suavização** é uma medida da inflação que busca mostrar a **tendência real dos preços**, excluindo automaticamente os que mais se desviam da média, como altas ou quedas extremas. Isso evita que choques temporários distorçam a análise. A expressão "sem suavização" significa que não são feitos ajustes adicionais para deixar os dados mais estáveis. Assim, esse núcleo oferece uma visão mais clara e objetiva da **inflação subjacente** no Brasil.
+
+```{r}
+#| label: gerar-frames
+#| warning: false
+#| echo: false
+
+# Número de frames
+n_frames <- 50
+data_seq <- seq.Date(min(df_bcb$ref.date), max(df_bcb$ref.date), length.out = n_frames)
+
+frames <- list()
+
+for (i in seq_along(data_seq)) {
+  
+  df_temp <- df_bcb %>% filter(ref.date <= data_seq[i])
+  
+  p <- ggplot(df_temp, aes(x = ref.date, y = value)) +
+    geom_line(color = "#B0E0E6", size = 1.5) +
+    geom_point(color = "#000080", size = 3, alpha = 0.8) +
+    labs(
+      title = paste('massa_rendimento - até:', format(data_seq[i], "%Y-%m")),
+      subtitle = 'massa_rendimento - Núcleo Médias Aparadas sem Suavização',
+      x = 'Data de Referência',
+      y = 'Variação % a.m.',
+      caption = 'Fonte: Banco Central do Brasil'
+    ) +
+    scale_x_date(date_labels = "%Y", date_breaks = "2 years") +
+    scale_y_continuous(labels = percent_format(scale = 1)) +
+    theme_minimal(base_family = "roboto") +
+    theme(
+      plot.background = element_rect(fill = "black"),
+      panel.background = element_rect(fill = "black"),
+      panel.grid.major = element_line(color = "gray30"),
+      panel.grid.minor = element_blank(),
+      axis.text = element_text(color = "white", size = 16),
+      axis.title = element_text(color = "white", size = 18),
+      plot.title = element_text(color = "#00FF7F", size = 24, face = "bold"),
+      plot.subtitle = element_text(color = "#FFFFFF", size = 20),
+      plot.caption = element_text(color = "gray70", size = 14),
+      text = element_text(size = 18)
+    )
+  
+  img_file <- tempfile(fileext = ".png")
+  ggsave(img_file, plot = p, width = 10, height = 6, dpi = 150)
+  
+  frames[[i]] <- image_read(img_file)
+}
+```
+
+```{r}
+#| label: animar-salvar
+#| warning: false
+#| echo: false
+
+gif <- image_animate(image_join(frames), fps = 10, loop = 1)
+
+gif
+
+image_write(gif, path = "grafico_massa_rendimento_animado.gif")
+
+```
+
+```         
+```
